@@ -34,7 +34,7 @@ export default function AdminProductForm() {
         fetchData();
     }, [id, isEdit]);
 
-    const handleSubmit = async (e: React.SubmitEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
     };

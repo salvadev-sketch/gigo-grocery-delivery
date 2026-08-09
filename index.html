@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GIGO Grocery — Fresh groceries, tracked door to door</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-900:#0f2e21;
+    --green-700:#1b4332;
+    --green-600:#2d6a4f;
+    --cream:#fbf7ee;
+    --cream-2:#f3ecdd;
+    --amber:#e8a33d;
+    --amber-dark:#c8811f;
+    --rust:#c1440e;
+    --ink:#22301f;
+    --ink-soft:#5a6b56;
+    --line:#e2ddcc;
+    --radius:14px;
+    --shadow:0 10px 30px -12px rgba(15,46,33,.25);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:'Inter',sans-serif;}
+  h1,h2,h3,.disp{font-family:'Space Grotesk',sans-serif;letter-spacing:-.01em;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+  img{max-width:100%;display:block;}
+
+  /* --- route-line signature motif: a dashed path used as a structural divider --- */
+  .route-rule{
+    height:2px;background-image:repeating-linear-gradient(90deg,var(--amber) 0 10px,transparent 10px 18px);
+    margin:0;
+  }
+  .route-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);display:inline-block;margin:0 8px;flex:none;}
+
+  /* --- topbar --- */
+  .announce{background:var(--green-900);color:#fff;text-align:center;font-size:13px;padding:8px 12px;display:flex;justify-content:center;gap:28px;flex-wrap:wrap;}
+  header.nav{position:sticky;top:0;z-index:40;background:rgba(251,247,238,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
+  .nav-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;gap:20px;}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:20px;color:var(--green-700);}
+  .logo .mark{width:30px;height:30px;border-radius:8px;background:var(--green-700);display:flex;align-items:center;justify-content:center;color:var(--amber);font-size:15px;}
+  .nav-links{display:flex;gap:26px;font-weight:600;font-size:14px;}
+  .nav-links a{padding:6px 2px;border-bottom:2px solid transparent;color:var(--ink-soft);}
+  .nav-links a.active,.nav-links a:hover{color:var(--green-700);border-color:var(--amber);}
+  .nav-right{display:flex;align-items:center;gap:14px;}
+  .search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:100px;padding:8px 14px;font-size:13px;color:var(--ink-soft);min-width:220px;}
+  .search input{border:none;outline:none;background:transparent;font-size:13px;width:100%;font-family:inherit;}
+  .icon-btn{position:relative;width:38px;height:38px;border-radius:10px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .badge{position:absolute;top:-6px;right:-6px;background:var(--rust);color:#fff;font-size:10px;font-weight:700;border-radius:100px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:100px;font-weight:600;font-size:14px;}
+  .btn-primary{background:var(--green-700);color:#fff;}
+  .btn-primary:hover{background:var(--green-900);}
+  .btn-amber{background:var(--amber);color:var(--green-900);}
+  .btn-amber:hover{background:var(--amber-dark);color:#fff;}
+  .btn-ghost{background:transparent;border:1.5px solid var(--green-700);color:var(--green-700);}
+  .btn-outline{background:#fff;border:1px solid var(--line);color:var(--ink);}
+  .btn-sm{padding:8px 14px;font-size:13px;border-radius:100px;}
+
+  main{max-width:1180px;margin:0 auto;padding:0 24px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* --- hero --- */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding:56px 0 40px;}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green-700);background:#e7f0e9;padding:6px 12px;border-radius:100px;margin-bottom:18px;}
+  .hero h1{font-size:44px;line-height:1.08;margin:0 0 16px;color:var(--green-900);}
+  .hero h1 em{font-style:normal;color:var(--rust);}
+  .hero p{color:var(--ink-soft);font-size:16px;line-height:1.6;margin:0 0 26px;max-width:440px;}
+  .hero-actions{display:flex;gap:12px;margin-bottom:26px;}
+  .trust-row{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--ink-soft);}
+  .trust-row span{display:flex;align-items:center;gap:6px;}
+  .hero-art{position:relative;border-radius:24px;overflow:hidden;background:linear-gradient(160deg,var(--green-600),var(--green-900));min-height:340px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
+  .hero-art .route-track{position:absolute;inset:0;opacity:.35;background-image:repeating-linear-gradient(120deg,transparent 0 16px,rgba(232,163,61,.6) 16px 18px);}
+  .hero-basket{position:relative;font-size:90px;filter:drop-shadow(0 12px 20px rgba(0,0,0,.35));}
+  .hero-pin{position:absolute;bottom:22px;right:26px;background:#fff;border-radius:100px;padding:8px 14px 8px 10px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--green-900);box-shadow:var(--shadow);}
+  .hero-pin .dot{width:8px;height:8px;border-radius:50%;background:var(--rust);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(193,68,14,.5);}70%{box-shadow:0 0 0 10px rgba(193,68,14,0);}100%{box-shadow:0 0 0 0 rgba(193,68,14,0);}}
+
+  section{padding:38px 0;}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;}
+  .section-head h2{font-size:24px;margin:0;color:var(--green-900);}
+  .section-head p{margin:4px 0 0;color:var(--ink-soft);font-size:13px;}
+  .view-all{font-size:13px;font-weight:700;color:var(--rust);}
+
+  .cats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+  .cat-tile{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px 10px;text-align:center;transition:.15s;}
+  .cat-tile:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:var(--shadow);}
+  .cat-tile .em{font-size:28px;margin-bottom:8px;}
+  .cat-tile .nm{font-size:12.5px;font-weight:600;}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;transition:.15s;}
+  .card:hover{box-shadow:var(--shadow);transform:translateY(-3px);}
+  .card-media{position:relative;height:120px;background:var(--cream-2);display:flex;align-items:center;justify-content:center;font-size:46px;cursor:pointer;}
+  .off-badge{position:absolute;top:10px;left:10px;background:var(--rust);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:100px;}
+  .card-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1;}
+  .card-body .nm{font-size:13.5px;font-weight:600;cursor:pointer;}
+  .stars{font-size:11px;color:var(--amber-dark);}
+  .price-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto;}
+  .price{font-weight:700;color:var(--green-900);}
+  .price s{font-weight:400;color:#a9a698;font-size:12px;margin-left:6px;}
+  .add-btn{width:32px;height:32px;border-radius:9px;background:var(--green-700);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  .add-btn:hover{background:var(--rust);}
+
+  .cta-band{border-radius:20px;background:var(--green-900);color:#fff;padding:40px;display:flex;align-items:center;justify-content:space-between;gap:24px;position:relative;overflow:hidden;}
+  .cta-band .route-track{position:absolute;inset:0;opacity:.15;background-image:repeating-linear-gradient(120deg,transparent 0 16px,var(--amber) 16px 18px);}
+  .cta-band h3{font-size:24px;margin:0 0 8px;position:relative;}
+  .cta-band p{color:#cfe0d5;margin:0 0 18px;max-width:380px;position:relative;font-size:14px;}
+  .cta-band .actions{display:flex;gap:10px;position:relative;}
+
+  .newsletter{background:var(--cream-2);border-radius:20px;padding:40px;text-align:center;}
+  .newsletter h3{margin:0 0 8px;font-size:20px;}
+  .newsletter p{color:var(--ink-soft);font-size:14px;margin:0 0 20px;}
+  .nl-form{display:flex;gap:8px;max-width:420px;margin:0 auto;}
+  .nl-form input{flex:1;padding:12px 16px;border-radius:100px;border:1px solid var(--line);font-family:inherit;}
+
+  footer{background:var(--green-900);color:#cfe0d5;margin-top:20px;}
+  .foot-inner{max-width:1180px;margin:0 auto;padding:40px 24px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:30px;font-size:13px;}
+  .foot-inner h4{color:#fff;font-size:13px;margin:0 0 12px;}
+  .foot-inner a{display:block;color:#a9c2ae;margin-bottom:8px;}
+  .foot-bottom{border-top:1px solid #234433;text-align:center;padding:16px;font-size:12px;color:#8fae96;}
+
+  /* --- products/deals toolbar --- */
+  .page-head{padding:30px 0 16px;}
+  .breadcrumb{font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
+  .toolbar{display:grid;grid-template-columns:220px 1fr;gap:24px;}
+  .filters{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;height:fit-content;}
+  .filters h4{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);}
+  .filt-item{padding:8px 4px;font-size:13.5px;border-radius:8px;cursor:pointer;}
+  .filt-item.active{background:var(--green-700);color:#fff;font-weight:600;}
+  .flash-band{border-radius:20px;background:linear-gradient(120deg,var(--rust),#e0611c);color:#fff;padding:34px;text-align:center;margin-bottom:24px;}
+  .flash-band h2{margin:0 0 6px;font-size:26px;}
+  .flash-band p{margin:0;opacity:.9;font-size:13.5px;}
+
+  /* --- product detail --- */
+  .pd-grid{display:grid;grid-template-columns:1fr 1fr;gap:44px;padding:30px 0 50px;}
+  .pd-media{background:var(--cream-2);border-radius:20px;min-height:340px;display:flex;align-items:center;justify-content:center;font-size:130px;}
+  .pd-badges{display:flex;gap:8px;margin-bottom:14px;}
+  .pd-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:100px;}
+  .pd-badge.organic{background:#e7f0e9;color:var(--green-700);}
+  .pd-badge.off{background:#fde3d5;color:var(--rust);}
+  .pd-price{font-size:30px;font-weight:700;color:var(--green-900);margin:14px 0 6px;}
+  .qty-row{display:flex;align-items:center;gap:14px;margin:22px 0;}
+  .stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:100px;overflow:hidden;}
+  .stepper button{width:36px;height:36px;background:#fff;font-size:16px;}
+  .stepper span{width:34px;text-align:center;font-weight:600;}
+
+  /* --- cart drawer --- */
+  .overlay{position:fixed;inset:0;background:rgba(15,46,33,.35);opacity:0;pointer-events:none;transition:.2s;z-index:60;}
+  .overlay.open{opacity:1;pointer-events:auto;}
+  .drawer{position:fixed;top:0;right:-420px;width:400px;max-width:92vw;height:100%;background:#fff;z-index:61;transition:.25s;display:flex;flex-direction:column;box-shadow:-10px 0 40px rgba(0,0,0,.15);}
+  .drawer.open{right:0;}
+  .drawer-head{padding:20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .drawer-body{flex:1;overflow:auto;padding:14px 20px;}
+  .cart-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);}
+  .cart-row .em{font-size:30px;width:44px;text-align:center;}
+  .cart-row .info{flex:1;}
+  .cart-row .info .nm{font-size:13.5px;font-weight:600;}
+  .cart-row .info .pr{font-size:12px;color:var(--ink-soft);}
+  .drawer-foot{padding:18px 20px 22px;border-top:1px solid var(--line);}
+  .row-between{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:8px;}
+  .row-between.total{font-weight:700;font-size:16px;margin-top:10px;}
+
+  /* --- checkout --- */
+  .steps-bar{display:flex;gap:10px;margin-bottom:26px;}
+  .step-pill{padding:9px 16px;border-radius:100px;font-size:13px;font-weight:600;background:#fff;border:1px solid var(--line);color:var(--ink-soft);display:flex;align-items:center;gap:6px;}
+  .step-pill.active{background:var(--green-700);border-color:var(--green-700);color:#fff;}
+  .step-pill.done{color:var(--green-700);}
+  .co-grid{display:grid;grid-template-columns:1fr 320px;gap:30px;padding-bottom:60px;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px;}
+  .addr-card{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;cursor:pointer;}
+  .addr-card.selected{border-color:var(--green-700);background:#f3f8f4;}
+  .pay-opt{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;cursor:pointer;}
+  .pay-opt.selected{border-color:var(--amber);background:#fdf6e9;}
+  .summary-row{display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
+  .form-grid input{grid-column:span 2;padding:11px 14px;border-radius:9px;border:1px solid var(--line);font-family:inherit;}
+
+  /* --- order tracking --- */
+  .track-grid{display:grid;grid-template-columns:1fr 320px;gap:24px;padding:26px 0 60px;}
+  .map-box{position:relative;height:360px;border-radius:18px;overflow:hidden;background:
+    linear-gradient(0deg, rgba(27,67,50,.05), rgba(27,67,50,.05)),
+    repeating-linear-gradient(0deg,#eef2e6 0 1px,transparent 1px 30px),
+    repeating-linear-gradient(90deg,#eef2e6 0 1px,transparent 1px 30px),
+    var(--cream-2);
+    border:1px solid var(--line);
+  }
+  .map-route{position:absolute;left:12%;top:70%;width:64%;height:2px;background-image:repeating-linear-gradient(90deg,var(--rust) 0 8px,transparent 8px 14px);transform:rotate(-18deg);transform-origin:left;}
+  .map-pin{position:absolute;font-size:26px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25));}
+  .otp-band{background:var(--green-900);color:#fff;border-radius:16px;padding:18px 20px;margin-bottom:16px;}
+  .otp-digits{display:flex;gap:8px;margin-top:10px;}
+  .otp-digits span{width:32px;height:38px;background:rgba(255,255,255,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .timeline{list-style:none;margin:0;padding:0;}
+  .timeline li{display:flex;gap:12px;padding-bottom:20px;position:relative;}
+  .timeline li:not(:last-child)::before{content:'';position:absolute;left:9px;top:22px;width:2px;height:100%;background:var(--line);}
+  .tl-dot{width:20px;height:20px;border-radius:50%;background:var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;}
+  .tl-dot.done{background:var(--green-700);}
+  .tl-dot.current{background:var(--amber);}
+  .tl-label{font-size:13.5px;font-weight:600;}
+  .tl-time{font-size:11.5px;color:var(--ink-soft);}
+
+  /* --- admin panel --- */
+  #admin-toggle{position:fixed;bottom:22px;right:22px;z-index:70;background:var(--green-900);color:#fff;padding:12px 18px;border-radius:100px;font-weight:700;font-size:13px;box-shadow:var(--shadow);}
+  .admin-shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+  .admin-side{background:var(--green-900);color:#cfe0d5;padding:22px 14px;}
+  .admin-side .logo{color:#fff;padding:0 8px 22px;}
+  .admin-link{display:block;padding:10px 12px;border-radius:9px;font-size:13.5px;font-weight:600;color:#cfe0d5;margin-bottom:4px;}
+  .admin-link.active,.admin-link:hover{background:rgba(255,255,255,.1);color:#fff;}
+  .admin-main{padding:30px;background:var(--cream);}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px;}
+  .stat-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .stat-card .lbl{font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
+  .stat-card .val{font-size:24px;font-weight:700;color:var(--green-900);}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);}
+  th,td{text-align:left;padding:12px 16px;font-size:13.5px;border-bottom:1px solid var(--line);}
+  th{background:var(--cream-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);}
+  .status-pill{padding:4px 10px;border-radius:100px;font-size:11.5px;font-weight:700;}
+  .status-pill.placed{background:#e7edfd;color:#3752d1;}
+  .status-pill.assigned{background:#fdf1d5;color:var(--amber-dark);}
+  .status-pill.delivered{background:#e2f5e6;color:#227a3e;}
+  .assign-link{color:var(--rust);font-weight:700;font-size:12.5px;}
+  .partner-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;display:flex;align-items:center;gap:14px;max-width:340px;}
+  .avatar{width:42px;height:42px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--green-900);}
+  .active-tag{background:#e2f5e6;color:#227a3e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;}
+
+  @media(max-width:960px){
+    .hero{grid-template-columns:1fr;}
+    .cats{grid-template-columns:repeat(3,1fr);}
+    .grid{grid-template-columns:repeat(2,1fr);}
+    .toolbar,.pd-grid,.co-grid,.track-grid{grid-template-columns:1fr;}
+    .foot-inner{grid-template-columns:1fr 1fr;}
+    .admin-shell{grid-template-columns:1fr;}
+    .search{display:none;}
+    .nav-links{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="announce">
+  <span>🚚 Free delivery on orders above 5,000 FRw</span>
+  <span>🌿 Farm-fresh produce, sourced daily</span>
+</div>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#" onclick="go('home');return false;"><span class="mark">G</span> GIGO Grocery</a>
+    <nav class="nav-links">
+      <a href="#" onclick="go('home');return false;" id="nl-home" class="active">Home</a>
+      <a href="#" onclick="go('products');return false;" id="nl-products">Products</a>
+      <a href="#" onclick="go('deals');return false;" id="nl-deals">Deals</a>
+    </nav>
+    <div class="nav-right">
+      <div class="search">🔍 <input placeholder="Search for groceries..." /></div>
+      <button class="icon-btn" onclick="go('track')" title="Track order">📍</button>
+      <button class="icon-btn" onclick="openCart()">🛒<span class="badge" id="cart-count">0</span></button>
+      <button class="btn btn-primary btn-sm">Sign In</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===== HOME ===== -->
+  <div class="view active" id="view-home">
+    <section class="hero">
+      <div>
+        <span class="eyebrow"><span class="route-dot" style="margin:0"></span> Tracked door to door</span>
+        <h1>Fresh groceries, <em>delivered</em> and watched every step.</h1>
+        <p>Order from local farms and trusted suppliers around Kigali. Watch your delivery partner's route live, right up to your door.</p>
+        <div class="hero-actions">
+          <button class="btn btn-amber" onclick="go('products')">Shop Now →</button>
+          <button class="btn btn-ghost" onclick="go('products')">Browse Categories</button>
+        </div>
+        <div class="trust-row">
+          <span>🚚 Free delivery over 5,000 FRw</span>
+          <span>🌿 100% Organic options</span>
+          <span>⚡ Same-day delivery</span>
+          <span>🔒 Secure checkout</span>
+        </div>
+      </div>
+      <div class="hero-art">
+        <div class="route-track"></div>
+        <div class="hero-basket">🧺</div>
+        <div class="hero-pin"><span class="dot"></span> Arriving in 18 min</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><div><h2>Browse Categories</h2><p>Find exactly what you need</p></div></div>
+      <div class="cats" id="cat-grid"></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <div><h2>Popular Products</h2><p>Top-rated picks this week</p></div>
+        <a class="view-all" href="#" onclick="go('products');return false;">View All →</a>
+      </div>
+      <div class="grid" id="popular-grid"></div>
+    </section>
+
+    <section>
+      <div class="cta-band">
+        <div class="route-track"></div>
+        <div>
+          <h3>Get fresh groceries in minutes</h3>
+          <p>Real-time tracking from checkout to your doorstep — know exactly when your order arrives.</p>
+          <div class="actions">
+            <button class="btn btn-amber btn-sm" onclick="go('products')">Start an order</button>
+            <button class="btn btn-outline btn-sm" onclick="go('track')" style="background:transparent;border-color:#fff;color:#fff;">See live tracking</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="newsletter">
+        <h3>Subscribe to our newsletter</h3>
+        <p>Weekly picks, seasonal offers, and delivery-day updates.</p>
+        <form class="nl-form" onsubmit="event.preventDefault();this.reset();alert('Subscribed!');">
+          <input placeholder="Enter your email address" required />
+          <button class="btn btn-primary btn-sm" type="submit">Subscribe</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== PRODUCTS ===== -->
+  <div class="view" id="view-products">
+    <div class="page-head">
+      <div class="breadcrumb">Home / All Products</div>
+      <h2 style="margin:0;">All Products</h2>
+    </div>
+    <div class="toolbar">
+      <div class="filters">
+        <h4>Categories</h4>
+        <div id="filter-list"></div>
+      </div>
+      <div class="grid" id="products-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== DEALS ===== -->
+  <div class="view" id="view-deals">
+    <div class="page-head">
+      <div class="flash-band">
+        <h2>⚡ Flash Deals ⚡</h2>
+        <p>Limited-time offers on your favorite products. Grab them before they're gone!</p>
+      </div>
+    </div>
+    <div class="grid" id="deals-grid"></div>
+  </div>
+
+  <!-- ===== PRODUCT DETAIL ===== -->
+  <div class="view" id="view-detail">
+    <div class="pd-grid" id="pd-content"></div>
+  </div>
+
+  <!-- ===== CHECKOUT ===== -->
+  <div class="view" id="view-checkout">
+    <div class="page-head">
+      <h2 style="margin:0 0 16px;">Checkout</h2>
+      <div class="steps-bar" id="co-steps"></div>
+    </div>
+    <div class="co-grid">
+      <div class="panel" id="co-panel"></div>
+      <div class="panel" id="co-summary"></div>
+    </div>
+  </div>
+
+  <!-- ===== ORDER TRACKING ===== -->
+  <div class="view" id="view-track">
+    <div class="page-head">
+      <div class="breadcrumb">← Back to Orders</div>
+      <h2 style="margin:0;">Order #GGD-7A21C</h2>
+      <div style="font-size:12.5px;color:var(--ink-soft);">Placed just now</div>
+    </div>
+    <div class="track-grid">
+      <div>
+        <div class="map-box">
+          <div class="map-route"></div>
+          <div class="map-pin" style="left:12%;top:66%;">🏬</div>
+          <div class="map-pin" style="left:60%;top:40%;">🛵</div>
+          <div class="map-pin" style="left:76%;top:22%;">📍</div>
+        </div>
+      </div>
+      <div>
+        <div class="otp-band">
+          <div style="font-size:12.5px;font-weight:700;">🔑 Delivery OTP</div>
+          <div style="font-size:11.5px;opacity:.8;">Share this with your delivery partner</div>
+          <div class="otp-digits"><span>4</span><span>1</span><span>9</span><span>2</span><span>0</span><span>7</span></div>
+        </div>
+        <div class="panel">
+          <h4 style="margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);">Delivery Progress</h4>
+          <ul class="timeline" id="timeline"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADMIN ===== -->
+  <div class="view" id="view-admin">
+    <div class="admin-shell">
+      <div class="admin-side">
+        <div class="logo" style="display:flex;align-items:center;gap:8px;font-weight:700;"><span class="mark">G</span> Admin Panel</div>
+        <a class="admin-link" onclick="showAdmin('dash')" id="al-dash">📊 Dashboard</a>
+        <a class="admin-link" onclick="showAdmin('products')" id="al-products">📦 Products</a>
+        <a class="admin-link" onclick="showAdmin('orders')" id="al-orders">🧾 Orders</a>
+        <a class="admin-link" onclick="showAdmin('partners')" id="al-partners">🚴 Delivery Partners</a>
+        <a class="admin-link" onclick="go('home')">↩ Exit to storefront</a>
+      </div>
+      <div class="admin-main" id="admin-content"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="foot-inner">
+    <div>
+      <div class="logo" style="color:#fff;margin-bottom:10px;"><span class="mark">G</span> GIGO Grocery</div>
+      <p style="color:#a9c2ae;font-size:13px;max-width:260px;">Fresh, local groceries delivered from farms around Kigali to your door — tracked every step of the way.</p>
+    </div>
+    <div><h4>Quicklinks</h4><a href="#">Home</a><a href="#">Products</a><a href="#">Deals</a></div>
+    <div><h4>Customer Service</h4><a href="#">Contact Us</a><a href="#">Track Order</a><a href="#">FAQ</a></div>
+    <div><h4>Contact</h4><a href="#">Kigali, Rwanda</a><a href="#">+250 788 000 000</a><a href="#">hello@gigogrocery.rw</a></div>
+  </div>
+  <div class="foot-bottom">© 2026 GIGO Grocery. Prototype — click-through demo only.</div>
+</footer>
+
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<div class="drawer" id="cart-drawer">
+  <div class="drawer-head"><strong>Your Cart</strong><button class="icon-btn" onclick="closeCart()">✕</button></div>
+  <div class="drawer-body" id="cart-body"></div>
+  <div class="drawer-foot">
+    <div class="row-between"><span>Subtotal</span><span id="cart-subtotal">0 FRw</span></div>
+    <div class="row-between"><span>Delivery</span><span id="cart-delivery">Free</span></div>
+    <div class="row-between total"><span>Total</span><span id="cart-total">0 FRw</span></div>
+    <button class="btn btn-amber" style="width:100%;justify-content:center;margin-top:14px;" onclick="proceedCheckout()">Proceed to Checkout</button>
+  </div>
+</div>
+
+<button id="admin-toggle" onclick="go('admin')">⚙ Admin Panel</button>
+
+<script>
+/* ---------- mock data ---------- */
+const CATS = [
+  {id:'fruits-vegetables',nm:'Fruits & Vegetables',em:'🥕'},
+  {id:'personal-care',nm:'Personal Care',em:'🧴'},
+  {id:'pantry-staples',nm:'Pantry Staples',em:'🌾'},
+  {id:'bakery',nm:'Bakery',em:'🍞'},
+  {id:'beverages',nm:'Beverages',em:'🥤'},
+  {id:'meat-seafood',nm:'Meat & Seafood',em:'🍗'},
+  {id:'snacks',nm:'Snacks',em:'🍿'},
+  {id:'frozen-foods',nm:'Frozen Foods',em:'🧊'},
+  {id:'baby-care',nm:'Baby Care',em:'🍼'},
+  {id:'dairy-eggs',nm:'Dairy & Eggs',em:'🥚'},
+];
+const PRODUCTS = [
+  {id:1,nm:'Carrot 500g',cat:'fruits-vegetables',em:'🥕',price:440,orig:500,off:12,organic:true,rating:4.5,reviews:12,stock:100,desc:'Sweet and crunchy, good for eyesight, ideal for juices and salads.'},
+  {id:2,nm:'Orange 1kg',cat:'fruits-vegetables',em:'🍊',price:750,orig:800,off:6,organic:true,rating:4.5,reviews:18,stock:80,desc:'Juicy and sweet, rich in vitamin C.'},
+  {id:3,nm:'Banana 1kg',cat:'fruits-vegetables',em:'🍌',price:450,orig:500,off:10,organic:false,rating:4.6,reviews:22,stock:120,desc:'Ripe, naturally sweet bananas, great for snacking or smoothies.'},
+  {id:4,nm:'Sprite 1.5L',cat:'beverages',em:'🥤',price:600,orig:750,off:20,organic:false,rating:4.5,reviews:12,stock:100,desc:'Chilled and ready to serve, 1.5 litre bottle.'},
+  {id:5,nm:'Coca-Cola 1.5L',cat:'beverages',em:'🥤',price:750,orig:800,off:6,organic:false,rating:4.5,reviews:14,stock:90,desc:'Classic Coca-Cola, 1.5 litre bottle.'},
+  {id:6,nm:'Brown Rice 1kg',cat:'pantry-staples',em:'🍚',price:1100,orig:1200,off:8,organic:true,rating:4.5,reviews:9,stock:60,desc:'Whole grain brown rice, high in fibre.'},
+  {id:7,nm:'Basmati Rice 5kg',cat:'pantry-staples',em:'🍚',price:5200,orig:5500,off:5,organic:false,rating:4.5,reviews:16,stock:40,desc:'Long-grain basmati rice, family pack.'},
+  {id:8,nm:'Onion 500g',cat:'fruits-vegetables',em:'🧅',price:450,orig:500,off:5,organic:false,rating:4.4,reviews:11,stock:75,desc:'Fresh red onions, locally sourced.'},
+  {id:9,nm:'Sliced White Bread',cat:'bakery',em:'🍞',price:700,orig:800,off:12,organic:false,rating:4.5,reviews:20,stock:50,desc:'Soft sliced bread, baked fresh daily.'},
+  {id:10,nm:'Chicken Drumsticks 1kg',cat:'meat-seafood',em:'🍗',price:3200,orig:3500,off:9,organic:false,rating:4.5,reviews:8,stock:35,desc:'Fresh chicken drumsticks, chilled.'},
+  {id:11,nm:'Potato Chips 150g',cat:'snacks',em:'🍟',price:1200,orig:1400,off:14,organic:false,rating:4.3,reviews:19,stock:65,desc:'Crispy salted potato chips.'},
+  {id:12,nm:'Eggs 12 pcs',cat:'dairy-eggs',em:'🥚',price:850,orig:900,off:5,organic:true,rating:4.6,reviews:24,stock:70,desc:'Farm-fresh eggs, tray of 12.'},
+];
+const DEALS = [
+  {id:13,nm:'Basmati Rice 5kg',cat:'pantry-staples',em:'🍚',price:5200,orig:5800,off:11,organic:false,rating:4.5,reviews:16,stock:40,desc:'Long-grain basmati rice, family pack.'},
+  {id:14,nm:'Wheat Flour 5kg',cat:'pantry-staples',em:'🌾',price:2300,orig:2900,off:20,organic:false,rating:4.5,reviews:10,stock:50,desc:'Fine wheat flour, ideal for baking.'},
+  {id:15,nm:'Mango 1kg',cat:'fruits-vegetables',em:'🥭',price:1400,orig:1900,off:26,organic:true,rating:4.7,reviews:15,stock:45,desc:'Sweet ripe mangoes, seasonal pick.'},
+  {id:16,nm:'Barley 1kg',cat:'pantry-staples',em:'🌾',price:1400,orig:1800,off:22,organic:false,rating:4.4,reviews:7,stock:30,desc:'Whole barley grains, great for soups.'},
+  {id:17,nm:'Cheese 200g',cat:'dairy-eggs',em:'🧀',price:1300,orig:1500,off:13,organic:false,rating:4.5,reviews:12,stock:38,desc:'Creamy cheddar cheese block.'},
+  {id:18,nm:'Panner 200g',cat:'dairy-eggs',em:'🧈',price:1500,orig:1900,off:21,organic:false,rating:4.4,reviews:9,stock:28,desc:'Fresh paneer, soft and creamy.'},
+];
+const ORDERS = [
+  {id:'#e2ea5c',customer:'GreatStack',total:'361.80',partner:null,status:'Placed'},
+  {id:'#e9ed02',customer:'GreatStack',total:'340.20',partner:'Avinash',status:'Assigned'},
+  {id:'#fee820',customer:'GreatStack',total:'378.00',partner:'Avinash',status:'Delivered'},
+];
+const TIMELINE_STEPS = ['Placed','Confirmed','Assigned','Packed','Out for Delivery','Delivered'];
+const CURRENT_STEP = 2; // 0-indexed, up to which is "done"
+
+let cart = {}; // id -> qty
+let detailProduct = null;
+let coStep = 0; // 0 address, 1 payment, 2 review
+let selectedAddr = 0;
+let selectedPay = 'card';
+
+function fmt(n){ return n.toLocaleString() + ' FRw'; }
+
+/* ---------- rendering ---------- */
+function renderCats(){
+  document.getElementById('cat-grid').innerHTML = CATS.map(c =>
+    `<div class="cat-tile" onclick="filterAndGo('${c.id}')"><div class="em">${c.em}</div><div class="nm">${c.nm}</div></div>`
+  ).join('');
+}
+function cardHtml(p){
+  return `<div class="card">
+    <div class="card-media" onclick="openDetail(${p.id})">${p.off?`<span class="off-badge">${p.off}% OFF</span>`:''}${p.em}</div>
+    <div class="card-body">
+      <div class="nm" onclick="openDetail(${p.id})">${p.nm}</div>
+      <div class="stars">★★★★★ (${p.reviews})</div>
+      <div class="price-row">
+        <div class="price">${fmt(p.price)}${p.orig?`<s>${fmt(p.orig)}</s>`:''}</div>
+        <button class="add-btn" onclick="addToCart(${p.id})">+</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderPopular(){ document.getElementById('popular-grid').innerHTML = PRODUCTS.slice(0,4).map(cardHtml).join(''); }
+function renderDeals(){ document.getElementById('deals-grid').innerHTML = DEALS.map(cardHtml).join(''); }
+
+let activeFilter = 'all';
+function renderFilters(){
+  const items = [{id:'all',nm:'All Categories'}, ...CATS];
+  document.getElementById('filter-list').innerHTML = items.map(c =>
+    `<div class="filt-item ${activeFilter===c.id?'active':''}" onclick="setFilter('${c.id}')">${c.nm}</div>`
+  ).join('');
+}
+function setFilter(id){ activeFilter = id; renderFilters(); renderProductsGrid(); }
+function renderProductsGrid(){
+  const list = activeFilter==='all' ? PRODUCTS : PRODUCTS.filter(p=>p.cat===activeFilter);
+  document.getElementById('products-grid').innerHTML = list.map(cardHtml).join('') || '<p style="color:var(--ink-soft)">No products in this category yet.</p>';
+}
+function filterAndGo(catId){ go('products'); activeFilter = catId; renderFilters(); renderProductsGrid(); }
+
+function findProduct(id){ return [...PRODUCTS, ...DEALS].find(p=>p.id===id); }
+function openDetail(id){
+  detailProduct = findProduct(id);
+  const p = detailProduct;
+  document.getElementById('pd-content').innerHTML = `
+    <div class="pd-media">${p.em}</div>
+    <div>
+      <div class="breadcrumb">Products / ${CATS.find(c=>c.id===p.cat)?.nm||''} / ${p.nm}</div>
+      <div class="pd-badges">${p.organic?'<span class="pd-badge organic">🌿 Organic</span>':''}${p.off?`<span class="pd-badge off">${p.off}% OFF</span>`:''}</div>
+      <h1 style="margin:0 0 6px;font-size:26px;">${p.nm}</h1>
+      <div class="stars">★★★★★ ${p.rating} (${p.reviews} reviews)</div>
+      <div class="pd-price">${fmt(p.price)} ${p.orig?`<s style="font-size:16px;color:#a9a698;">${fmt(p.orig)}</s>`:''}</div>
+      <p style="color:var(--ink-soft);font-size:14px;line-height:1.6;max-width:420px;">${p.desc}</p>
+      <div style="font-size:13px;color:var(--green-700);font-weight:600;">✓ In Stock (${p.stock} available)</div>
+      <div class="qty-row">
+        <div class="stepper"><button onclick="stepQty(-1)">−</button><span id="pd-qty">1</span><button onclick="stepQty(1)">+</button></div>
+        <button class="btn btn-primary" onclick="addToCart(${p.id}, true)">🛒 Add to Cart</button>
+      </div>
+    </div>`;
+  window.__pdQty = 1;
+  go('detail');
+}
+function stepQty(d){ window.__pdQty = Math.max(1, (window.__pdQty||1)+d); document.getElementById('pd-qty').textContent = window.__pdQty; }
+
+/* ---------- cart ---------- */
+function addToCart(id, fromDetail){
+  const qty = fromDetail ? (window.__pdQty||1) : 1;
+  cart[id] = (cart[id]||0) + qty;
+  renderCart();
+  if(!fromDetail){ pulseCartIcon(); }
+}
+function pulseCartIcon(){}
+function changeQty(id, d){
+  cart[id] = Math.max(0, (cart[id]||0)+d);
+  if(cart[id]===0) delete cart[id];
+  renderCart();
+}
+function renderCart(){
+  const ids = Object.keys(cart);
+  const count = ids.reduce((s,id)=>s+cart[id],0);
+  document.getElementById('cart-count').textContent = count;
+  let subtotal = 0;
+  document.getElementById('cart-body').innerHTML = ids.length ? ids.map(id=>{
+    const p = findProduct(+id); subtotal += p.price*cart[id];
+    return `<div class="cart-row">
+      <div class="em">${p.em}</div>
+      <div class="info"><div class="nm">${p.nm}</div><div class="pr">${fmt(p.price)} × ${cart[id]}</div></div>
+      <div class="stepper"><button onclick="changeQty(${id},-1)">−</button><span>${cart[id]}</span><button onclick="changeQty(${id},1)">+</button></div>
+    </div>`;
+  }).join('') : '<p style="color:var(--ink-soft);text-align:center;padding:30px 0;">Your cart is empty.</p>';
+  document.getElementById('cart-subtotal').textContent = fmt(subtotal);
+  document.getElementById('cart-total').textContent = fmt(subtotal);
+}
+function openCart(){ document.getElementById('cart-drawer').classList.add('open'); document.getElementById('overlay').classList.add('open'); }
+function closeCart(){ document.getElementById('cart-drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+function proceedCheckout(){
+  if(Object.keys(cart).length===0){ alert('Your cart is empty — add something first.'); return; }
+  closeCart(); coStep = 0; go('checkout');
+}
+
+/* ---------- checkout ---------- */
+function renderCheckout(){
+  const labels = ['📍 Address','💳 Payment','✓ Review'];
+  document.getElementById('co-steps').innerHTML = labels.map((l,i)=>
+    `<div class="step-pill ${i===coStep?'active':i<coStep?'done':''}">${l}</div>`
+  ).join('');
+
+  let subtotal = 0;
+  Object.keys(cart).forEach(id=>{ subtotal += findProduct(+id).price*cart[id]; });
+  const tax = Math.round(subtotal*0.08);
+  const total = subtotal+tax;
+
+  document.getElementById('co-summary').innerHTML = `
+    <h4 style="margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);">Order Summary</h4>
+    <div class="summary-row"><span>Subtotal (${Object.values(cart).reduce((a,b)=>a+b,0)} items)</span><span>${fmt(subtotal)}</span></div>
+    <div class="summary-row"><span>Delivery</span><span style="color:var(--green-700);font-weight:600;">Free</span></div>
+    <div class="summary-row"><span>Tax</span><span>${fmt(tax)}</span></div>
+    <div class="summary-row" style="border-top:1px solid var(--line);margin-top:8px;padding-top:12px;font-weight:700;font-size:15px;"><span>Total</span><span>${fmt(total)}</span></div>`;
+
+  let panel = '';
+  if(coStep===0){
+    panel = `
+      <h3 style="margin:0 0 16px;">📍 Delivery Address</h3>
+      <div class="addr-card selected"><strong>Home</strong> <span style="font-size:11px;background:#fdf1d5;color:var(--amber-dark);padding:2px 8px;border-radius:100px;">DEFAULT</span><div style="font-size:13px;color:var(--ink-soft);margin-top:4px;">KG 7 Ave, Kigali, Rwanda</div></div>
+      <button class="btn btn-outline btn-sm">+ Add New Address</button>
+      <div style="margin-top:24px;"><button class="btn btn-primary" onclick="coStep=1;renderCheckout();">Continue to Payment →</button></div>`;
+  } else if(coStep===1){
+    panel = `
+      <h3 style="margin:0 0 16px;">💳 Payment Method</h3>
+      <div class="pay-opt ${selectedPay==='momo'?'selected':''}" onclick="selectedPay='momo';renderCheckout();">📱 <div><strong>MTN MoMo</strong><div style="font-size:12px;color:var(--ink-soft);">Pay via mobile money push</div></div></div>
+      <div class="pay-opt ${selectedPay==='card'?'selected':''}" onclick="selectedPay='card';renderCheckout();">💳 <div><strong>Credit / Debit Card</strong><div style="font-size:12px;color:var(--ink-soft);">Pay securely with your card</div></div></div>
+      <div class="pay-opt ${selectedPay==='cod'?'selected':''}" onclick="selectedPay='cod';renderCheckout();">💵 <div><strong>Cash on Delivery</strong><div style="font-size:12px;color:var(--ink-soft);">Pay when you receive</div></div></div>
+      <div style="margin-top:24px;"><button class="btn btn-primary" onclick="coStep=2;renderCheckout();">Review Order →</button></div>`;
+  } else {
+    panel = `
+      <h3 style="margin:0 0 16px;">✓ Review Order</h3>
+      <p style="font-size:13.5px;color:var(--ink-soft);">Delivering to <strong>KG 7 Ave, Kigali</strong> · Paying via <strong>${selectedPay==='momo'?'MTN MoMo':selectedPay==='card'?'Card':'Cash on Delivery'}</strong></p>
+      <button class="btn btn-amber" style="margin-top:14px;" onclick="placeOrder()">Place Order</button>`;
+  }
+  document.getElementById('co-panel').innerHTML = panel;
+}
+function placeOrder(){
+  cart = {}; renderCart();
+  go('track');
+}
+
+/* ---------- tracking ---------- */
+function renderTimeline(){
+  document.getElementById('timeline').innerHTML = TIMELINE_STEPS.map((s,i)=>{
+    const cls = i<CURRENT_STEP?'done':i===CURRENT_STEP?'current':'';
+    const icon = i<CURRENT_STEP?'✓':i===CURRENT_STEP?'●':'';
+    return `<li><div class="tl-dot ${cls}">${icon}</div><div><div class="tl-label">${s}</div><div class="tl-time">${i<=CURRENT_STEP?'Today, '+(9+i)+':0'+(i%6)+' AM':'Pending'}</div></div></li>`;
+  }).join('');
+}
+
+/* ---------- admin ---------- */
+function showAdmin(tab){
+  ['dash','products','orders','partners'].forEach(t=>document.getElementById('al-'+t).classList.toggle('active', t===tab));
+  const c = document.getElementById('admin-content');
+  if(tab==='dash'){
+    c.innerHTML = `<h2 style="margin:0 0 20px;">Dashboard</h2>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="lbl">Total Products</div><div class="val">${PRODUCTS.length+DEALS.length}</div></div>
+        <div class="stat-card"><div class="lbl">Open Orders</div><div class="val">${ORDERS.filter(o=>o.status!=='Delivered').length}</div></div>
+        <div class="stat-card"><div class="lbl">Delivery Partners</div><div class="val">1</div></div>
+        <div class="stat-card"><div class="lbl">Revenue Today</div><div class="val">1,080 FRw</div></div>
+      </div>`;
+  } else if(tab==='products'){
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;"><h2 style="margin:0;">Products</h2><button class="btn btn-primary btn-sm">+ Add Product</button></div>
+      <table><thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead><tbody>
+      ${PRODUCTS.map(p=>`<tr><td>${p.em} ${p.nm}</td><td>${fmt(p.price)}</td><td style="color:var(--green-700);font-weight:600;">${p.stock} in stock</td><td>✎ ✕</td></tr>`).join('')}
+      </tbody></table>`;
+  } else if(tab==='orders'){
+    c.innerHTML = `<h2 style="margin:0 0 18px;">Orders</h2>
+      <table><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Delivery Partner</th><th>Status</th></tr></thead><tbody>
+      ${ORDERS.map(o=>`<tr><td>${o.id}</td><td>${o.customer}</td><td>${o.total} FRw</td><td>${o.partner?'👤 '+o.partner:'<span class="assign-link">↗ Assign</span>'}</td><td><span class="status-pill ${o.status.toLowerCase()}">${o.status}</span></td></tr>`).join('')}
+      </tbody></table>`;
+  } else {
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;"><h2 style="margin:0;">Delivery Partners</h2><button class="btn btn-primary btn-sm">+ Add Partner</button></div>
+      <div class="partner-card"><div class="avatar">A</div><div><strong>Avinash</strong> <span class="active-tag">Active</span><div style="font-size:12.5px;color:var(--ink-soft);">Bike · 9876543210</div></div></div>`;
+  }
+}
+
+/* ---------- routing ---------- */
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+  const nl = document.getElementById('nl-'+view); if(nl) nl.classList.add('active');
+  if(view==='checkout') renderCheckout();
+  if(view==='track') renderTimeline();
+  if(view==='admin') showAdmin('dash');
+  window.scrollTo(0,0);
+}
+
+/* ---------- init ---------- */
+renderCats(); renderPopular(); renderDeals(); renderFilters(); renderProductsGrid(); renderCart();
+</script>
+</body>
+</html>

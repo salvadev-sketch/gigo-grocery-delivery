@@ -1,18 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { PackageIcon, NavigationIcon } from "lucide-react";
+import toast from "react-hot-toast";
 import OtpModal from "../../components/Delivery/OtpModal";
 import CancelModal from "../../components/Delivery/CancelModal";
 import DeliveryOrderCard from "../../components/Delivery/DeliveryOrderCard";
 import Loading from "../../components/Loading";
 import type { Order } from "../../types";
-import { dummyDashboardOrdersData } from "../../assets/assets";
+import { api, toFrontendOrder } from "../../lib/api";
+
+const ACTIVE_STATUSES = ["Assigned", "Packed", "Out for Delivery"];
 
 export default function DeliveryDashboard() {
 
-    const [orders, setOrders] = useState<Order[]>([]);
+    const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<"active" | "completed">("active");
     const [tracking, setTracking] = useState(false);
+    const watchIdRef = useRef<number | null>(null);
 
     // OTP modal
     const [otpModal, setOtpModal] = useState<string | null>(null);
@@ -25,37 +29,94 @@ export default function DeliveryDashboard() {
 
     const fetchOrders = async () => {
         setLoading(true);
-        setOrders(dummyDashboardOrdersData as any);
-        setLoading(false);
+        try {
+            const { data } = await api.get("/delivery-partners/orders");
+            setAllOrders(data.map(toFrontendOrder));
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to load orders");
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         fetchOrders();
-    }, [tab]);
+    }, []);
+
+    const orders = allOrders.filter((o) =>
+        tab === "active" ? ACTIVE_STATUSES.includes(o.status) : ["Delivered", "Cancelled"].includes(o.status)
+    );
 
     const handleUpdateStatus = async (orderId: string, status: string) => {
-        console.log(orderId, status);
+        try {
+            await api.patch(`/delivery-partners/orders/${orderId}/status`, { status });
+            setAllOrders((prev) => prev.map((o) => (o._id === orderId ? { ...o, status } : o)));
+            toast.success(`Order marked as "${status}"`);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to update order status");
+        }
     };
 
     const handleComplete = async () => {
         if (!otpModal || !otp) return;
         setSubmitting(true);
-        setTimeout(() => {
-            setSubmitting(false);
+        try {
+            await api.post(`/delivery-partners/orders/${otpModal}/deliver`, { otp });
+            setAllOrders((prev) => prev.map((o) => (o._id === otpModal ? { ...o, status: "Delivered" } : o)));
+            toast.success("Delivery confirmed!");
             setOtpModal(null);
             setOtp("");
-        }, 1000);
+        } catch (err) {
+            console.error(err);
+            toast.error("Incorrect OTP or update failed");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleCancel = async () => {
         if (!cancelModal) return;
         setSubmitting(true);
-        setTimeout(() => {
-            setSubmitting(false);
+        try {
+            await api.patch(`/delivery-partners/orders/${cancelModal}/status`, { status: "Cancelled", reason: cancelReason });
+            setAllOrders((prev) => prev.map((o) => (o._id === cancelModal ? { ...o, status: "Cancelled" } : o)));
+            toast.success("Order cancelled");
             setCancelModal(null);
             setCancelReason("");
-        }, 1000);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to cancel order");
+        } finally {
+            setSubmitting(false);
+        }
     }
+
+    // While "Sharing Location" is on, push this device's position to every active order
+    useEffect(() => {
+        if (!tracking || !navigator.geolocation) return;
+
+        const pushLocation = (position: GeolocationPosition) => {
+            const { latitude: lat, longitude: lng } = position.coords;
+            allOrders
+                .filter((o) => ACTIVE_STATUSES.includes(o.status))
+                .forEach((o) => {
+                    api.patch(`/delivery-partners/orders/${o._id}/location`, { lat, lng }).catch((err) => console.error(err));
+                });
+        };
+
+        watchIdRef.current = navigator.geolocation.watchPosition(pushLocation, (err) => {
+            console.error(err);
+            toast.error("Couldn't access location");
+            setTracking(false);
+        }, { enableHighAccuracy: true, maximumAge: 5000 });
+
+        return () => {
+            if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tracking]);
 
     return (
         <div className="space-y-6">

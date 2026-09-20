@@ -32,7 +32,7 @@ export function toFrontendOrder(o: any) {
     statusHistory: (o.statusHistory || []).map((h: any) => ({
       status: h.status,
       timestamp: h.at,
-      note: "",
+      note: h.reason || "",
     })),
     deliveryPartner: o.deliveryPartner ? { ...o.deliveryPartner, _id: o.deliveryPartnerId } : null,
   };

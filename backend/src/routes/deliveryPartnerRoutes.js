@@ -28,19 +28,20 @@ router.get("/orders", requirePartnerAuth, async (req, res) => {
   const orders = await prisma.order.findMany({
     where: { deliveryPartnerId: req.partner.id },
     orderBy: { createdAt: "desc" },
+    include: { user: { select: { name: true, email: true, phone: true } } },
   });
   res.json(orders);
 });
 
-// PATCH /api/delivery-partners/orders/:id/status — e.g. Packed, Out for Delivery
+// PATCH /api/delivery-partners/orders/:id/status — e.g. Packed, Out for Delivery, Cancelled (+ optional reason)
 router.patch("/orders/:id/status", requirePartnerAuth, async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, reason } = req.body;
     const order = await prisma.order.findFirst({ where: { id: req.params.id, deliveryPartnerId: req.partner.id } });
     if (!order) return res.status(404).json({ message: "Order not found" });
 
     const history = Array.isArray(order.statusHistory) ? order.statusHistory : [];
-    history.push({ status, at: new Date().toISOString() });
+    history.push({ status, at: new Date().toISOString(), ...(reason ? { reason } : {}) });
 
     const updated = await prisma.order.update({
       where: { id: order.id },

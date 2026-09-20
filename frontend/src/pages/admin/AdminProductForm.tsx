@@ -1,11 +1,32 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeftIcon } from "lucide-react";
-import { categoriesData, dummyProducts } from "../../assets/assets";
+import toast from "react-hot-toast";
+import { categoriesData } from "../../assets/assets";
 import Loading from "../../components/Loading";
+import { api, toFrontendProduct } from "../../lib/api";
+
+async function uploadImageToCloudinary(file: File): Promise<string> {
+    const { data: sig } = await api.get("/admin/upload-signature");
+    const form = new FormData();
+    form.append("file", file);
+    form.append("api_key", sig.apiKey);
+    form.append("timestamp", String(sig.timestamp));
+    form.append("signature", sig.signature);
+    form.append("folder", sig.folder);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, {
+        method: "POST",
+        body: form,
+    });
+    if (!res.ok) throw new Error("Image upload failed");
+    const uploaded = await res.json();
+    return uploaded.secure_url;
+}
 
 export default function AdminProductForm() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const isEdit = Boolean(id);
 
     const [loading, setLoading] = useState(isEdit);
@@ -27,16 +48,54 @@ export default function AdminProductForm() {
     useEffect(() => {
         const fetchData = async () => {
             if (isEdit) {
-                setFormData(() => dummyProducts.find((p) => p._id === id) as any)
+                try {
+                    const { data } = await api.get(`/products/${id}`);
+                    setFormData(toFrontendProduct(data) as any);
+                } catch (err) {
+                    console.error(err);
+                    toast.error("Failed to load product");
+                }
             }
-            setLoading(false)
+            setLoading(false);
         };
         fetchData();
     }, [id, isEdit]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSaving(true);
+        try {
+            let imageUrl = formData.image;
+            if (imageFile) {
+                imageUrl = await uploadImageToCloudinary(imageFile);
+            }
 
+            const payload = {
+                name: formData.name,
+                description: formData.description,
+                price: parseFloat(formData.price),
+                originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
+                image: imageUrl,
+                category: formData.category,
+                unit: formData.unit,
+                stock: parseInt(formData.stock, 10),
+                isOrganic: formData.isOrganic,
+            };
+
+            if (isEdit) {
+                await api.put(`/products/${id}`, payload);
+                toast.success("Product updated");
+            } else {
+                await api.post("/products", payload);
+                toast.success("Product created");
+            }
+            navigate("/admin/products");
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to save product");
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (

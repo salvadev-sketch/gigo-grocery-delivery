@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PackageIcon, UsersIcon, ShoppingBagIcon, AlertTriangleIcon } from "lucide-react";
 import Loading from "../../components/Loading";
-import { dummyAdminDashboardData, statusColors } from "../../assets/assets";
+import { statusColors } from "../../assets/assets";
+import { api, toFrontendOrder } from "../../lib/api";
 
 interface Stats {
     totalOrders: number;
@@ -20,10 +21,17 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setTimeout(() => {
-            setStats(dummyAdminDashboardData);
-            setLoading(false);
-        }, 1000);
+        async function load() {
+            try {
+                const { data } = await api.get("/admin/dashboard");
+                setStats({ ...data, recentOrders: (data.recentOrders || []).map(toFrontendOrder) });
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        load();
     }, []);
 
     const cards = stats

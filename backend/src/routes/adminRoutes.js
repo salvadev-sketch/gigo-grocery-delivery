@@ -1,27 +1,42 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../config/db.js";
+import cloudinary from "../config/cloudinary.js";
 import { requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 router.use(requireAdmin);
 
+// GET /api/admin/upload-signature — signed params for direct-to-Cloudinary upload
+router.get("/upload-signature", (_req, res) => {
+  const timestamp = Math.round(Date.now() / 1000);
+  const folder = "gigo-grocery-delivery/products";
+  const signature = cloudinary.utils.api_sign_request(
+    { timestamp, folder },
+    process.env.CLOUDINARY_API_SECRET
+  );
+  res.json({
+    signature,
+    timestamp,
+    folder,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+  });
+});
+
 router.get("/dashboard", async (_req, res) => {
-  const [productCount, openOrders, partnerCount, deliveredToday] = await Promise.all([
+  const [totalOrders, totalUsers, totalProducts, outOfStock, recentOrders] = await Promise.all([
+    prisma.order.count(),
+    prisma.user.count(),
     prisma.product.count(),
-    prisma.order.count({ where: { status: { not: "Delivered" } } }),
-    prisma.deliveryPartner.count({ where: { isActive: true } }),
-    prisma.order.aggregate({
-      _sum: { total: true },
-      where: { status: "Delivered", updatedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
+    prisma.product.count({ where: { stock: { lte: 0 } } }),
+    prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { user: { select: { name: true, email: true } } },
     }),
   ]);
-  res.json({
-    productCount,
-    openOrders,
-    partnerCount,
-    revenueToday: deliveredToday._sum.total || 0,
-  });
+  res.json({ totalOrders, totalUsers, totalProducts, outOfStock, recentOrders });
 });
 
 router.get("/orders", async (_req, res) => {
@@ -56,6 +71,28 @@ router.patch("/orders/:id/assign", async (req, res) => {
     res.json(updated);
   } catch (err) {
     res.status(500).json({ message: "Failed to assign delivery partner", error: err.message });
+  }
+});
+
+// PATCH /api/admin/orders/:id/status — manually change an order's status
+router.patch("/orders/:id/status", async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const existing = await prisma.order.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ message: "Order not found" });
+
+    const history = Array.isArray(existing.statusHistory) ? existing.statusHistory : [];
+    history.push({ status, at: new Date().toISOString() });
+
+    const updated = await prisma.order.update({
+      where: { id: req.params.id },
+      data: { status, statusHistory: history },
+    });
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update order status", error: err.message });
   }
 });
 
